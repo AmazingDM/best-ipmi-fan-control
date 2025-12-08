@@ -23,7 +23,7 @@ pub(crate) trait Executer {
             Err(anyhow!(
                 "status:{}, stderr: {}",
                 output.status.code().unwrap(),
-                String::from_utf8_lossy(&output.stderr).to_string()
+                String::from_utf8_lossy(&output.stderr)
             ))
         }
     }
