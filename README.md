@@ -51,6 +51,8 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
+Release archives bundle the required `yaml-cpp` shared library under `lib/`, and the executable is configured to load it with a relative runtime search path. If you build locally instead of using the release archive, install the matching `yaml-cpp` runtime package on the target Linux system.
+
 ## Quick Start
 
 Print fan and temperature information:

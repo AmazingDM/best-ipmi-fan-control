@@ -31,7 +31,7 @@ Steps:
 
 1. Build on Linux `x86_64` and Linux `arm64`
 2. Run the test suite
-3. Package the binary, example YAML, service template, README, and license
+3. Package the binary together with the `yaml-cpp` runtime library, plus the example YAML, service template, README, and license
 4. Generate SHA256 checksums
 5. Create a GitHub Release and upload the artifacts
 

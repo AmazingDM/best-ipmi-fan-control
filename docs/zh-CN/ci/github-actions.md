@@ -31,7 +31,7 @@ English: [docs/ci/github-actions.md](../../ci/github-actions.md)
 
 1. 分别在 Linux `x86_64` 和 Linux `arm64` 上构建
 2. 运行测试
-3. 打包二进制、示例 YAML、服务模板、README 和许可证
+3. 打包二进制及其 `yaml-cpp` 运行库，同时附带示例 YAML、服务模板、README 和许可证
 4. 生成 SHA256 校验文件
 5. 创建 GitHub Release 并上传产物
 

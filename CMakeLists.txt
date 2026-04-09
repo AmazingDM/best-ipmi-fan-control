@@ -38,6 +38,10 @@ endif()
 
 add_executable(ipmi-fan-control src/main.cpp)
 target_link_libraries(ipmi-fan-control PRIVATE ipmi_fan_control_lib)
+set_target_properties(ipmi-fan-control PROPERTIES
+    BUILD_RPATH "\$ORIGIN/lib"
+    INSTALL_RPATH "\$ORIGIN/lib"
+)
 
 include(GNUInstallDirs)
 install(TARGETS ipmi-fan-control RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

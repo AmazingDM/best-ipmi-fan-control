@@ -47,8 +47,21 @@ jobs:
 
       - name: Prepare package
         run: |
-          mkdir -p package
+          yaml_cpp_path="$(ldd build/ipmi-fan-control | awk '/yaml-cpp/ {print $3; exit}')"
+          if [ -z "$yaml_cpp_path" ]; then
+            echo "Failed to locate yaml-cpp runtime dependency"
+            exit 1
+          fi
+          yaml_cpp_real="$(readlink -f "$yaml_cpp_path")"
+          yaml_cpp_name="$(basename "$yaml_cpp_path")"
+          yaml_cpp_real_name="$(basename "$yaml_cpp_real")"
+
+          mkdir -p package/lib
           cp build/ipmi-fan-control package/
+          cp "$yaml_cpp_real" package/lib/
+          if [ "$yaml_cpp_name" != "$yaml_cpp_real_name" ]; then
+            ln -s "$yaml_cpp_real_name" "package/lib/$yaml_cpp_name"
+          fi
           cp examples/config.example.yaml package/
           cp etc/systemd/system/ipmi-fan-control.service.example package/
           cp README.md package/
