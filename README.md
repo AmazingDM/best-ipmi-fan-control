@@ -90,6 +90,18 @@ Install and enable the `systemd` service:
 sudo ./build/ipmi-fan-control install-service --config /etc/ipmi-fan-control/config.ini
 ```
 
+Manage the service after installation:
+
+```bash
+sudo systemctl start ipmi-fan-control
+sudo systemctl stop ipmi-fan-control
+sudo systemctl restart ipmi-fan-control
+sudo systemctl reload ipmi-fan-control
+systemctl status ipmi-fan-control
+```
+
+After editing `config.ini`, run `sudo systemctl reload ipmi-fan-control` to hot-reload the file without restarting the process. If you change the unit file itself, run `sudo systemctl daemon-reload` before restarting or reloading the service.
+
 ## Example INI
 
 ```ini

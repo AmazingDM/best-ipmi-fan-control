@@ -119,6 +119,7 @@ std::string BuildSystemdUnit(const ServiceInstallOptions& options) {
         << "RestartSec=5\n"
         << "ExecStart=" << EscapeSystemdArgument(options.executable_path.string())
         << " auto --config " << EscapeSystemdArgument(options.config_path.string()) << "\n"
+        << "ExecReload=/bin/kill -HUP $MAINPID\n"
         << "KillMode=mixed\n\n"
         << "[Install]\n"
         << "WantedBy=multi-user.target\n";

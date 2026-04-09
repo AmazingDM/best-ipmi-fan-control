@@ -12,3 +12,15 @@ English: [README.md](../../README.md)
 - [INI 配置说明](configuration/ini-schema.md)
 - [GitHub Actions 说明](ci/github-actions.md)
 - [C++ 迁移总结](plans/cpp-migration-plan.md)
+
+## 服务常用命令
+
+```bash
+sudo systemctl start ipmi-fan-control
+sudo systemctl stop ipmi-fan-control
+sudo systemctl restart ipmi-fan-control
+sudo systemctl reload ipmi-fan-control
+systemctl status ipmi-fan-control
+```
+
+修改 `/etc/ipmi-fan-control/config.ini` 后，可执行 `sudo systemctl reload ipmi-fan-control` 热重载配置；如果修改的是 `.service` 单元文件本身，则先执行 `sudo systemctl daemon-reload`，再重启或重载服务。

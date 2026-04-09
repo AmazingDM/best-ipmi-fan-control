@@ -10,7 +10,8 @@ Simplified Chinese: [docs/zh-CN/architecture/control-flow.md](../zh-CN/architect
 4. Extract the highest reported temperature.
 5. Match the temperature against the step-based fan rules.
 6. Call `ipmitool raw` only when the target fan speed changes.
-7. If sensor reads or IPMI writes fail, switch to `100%` fan speed when possible and exit so `systemd` can restart the service.
+7. If the process receives `SIGHUP`, re-read the INI file and keep the previous configuration when the new file fails validation.
+8. If sensor reads or IPMI writes fail, switch to `100%` fan speed when possible and exit so `systemd` can restart the service.
 
 ## Module Responsibilities
 
@@ -18,7 +19,7 @@ Simplified Chinese: [docs/zh-CN/architecture/control-flow.md](../zh-CN/architect
 - `config.cpp`: strict INI loading and validation, plus built-in defaults for `auto` without `--config`
 - `control.cpp`: temperature-to-speed step matching
 - `ipmi.cpp`: `ipmitool` invocation and output parsing
-- `service.cpp`: `systemd` unit generation and installation
+- `service.cpp`: `systemd` unit generation and installation, including `ExecReload`
 
 ## Design Notes
 

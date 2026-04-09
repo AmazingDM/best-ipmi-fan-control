@@ -200,6 +200,8 @@ void TestSystemdUnitBuilder() {
     const std::string unit = ipmi_fan_control::BuildSystemdUnit(options);
     Expect(unit.find("ExecStart=\"/usr/bin/IPMI Fan/ipmi-fan-control\" auto --config \"/etc/ipmi fan/100%%/config.ini\"") != std::string::npos,
         "Service unit should escape paths containing spaces and percent signs");
+    Expect(unit.find("ExecReload=/bin/kill -HUP $MAINPID") != std::string::npos,
+        "Service unit should support hot reload through SIGHUP");
 }
 
 void TestNormalizeServiceName() {

@@ -8,6 +8,7 @@ Type=simple
 Restart=always
 RestartSec=5
 ExecStart="/usr/bin/ipmi-fan-control" auto --config "/etc/ipmi-fan-control/config.ini"
+ExecReload=/bin/kill -HUP $MAINPID
 KillMode=mixed
 
 [Install]

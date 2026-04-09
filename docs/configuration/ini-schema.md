@@ -36,6 +36,14 @@ Validation rules:
 
 When `auto` runs without `--config`, the built-in defaults are used instead of loading an INI file.
 
+When the tool runs as the installed `systemd` service, editing the configured INI file can be applied with:
+
+```bash
+sudo systemctl reload ipmi-fan-control
+```
+
+The service reload path sends `SIGHUP`, re-reads the INI file, validates it, and keeps the previous configuration if the new file is invalid.
+
 ## Example
 
 ```ini

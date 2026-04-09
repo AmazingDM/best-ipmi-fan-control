@@ -7,16 +7,56 @@
 #include "ipmi_fan_control/service.hpp"
 
 #include <chrono>
+#include <csignal>
 #include <exception>
 #include <filesystem>
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <thread>
 
 namespace ipmi_fan_control {
 
 namespace {
+
+volatile std::sig_atomic_t g_reload_requested = 0;
+
+extern "C" void HandleReloadSignal(int signal_number) {
+    if (signal_number == SIGHUP) {
+        g_reload_requested = 1;
+    }
+}
+
+void InstallReloadSignalHandler() {
+#ifndef _WIN32
+    struct sigaction action {};
+    action.sa_handler = HandleReloadSignal;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
+
+    if (sigaction(SIGHUP, &action, nullptr) != 0) {
+        throw std::runtime_error("Failed to install SIGHUP handler");
+    }
+#endif
+}
+
+bool ConsumeReloadRequest() {
+    if (g_reload_requested == 0) {
+        return false;
+    }
+    g_reload_requested = 0;
+    return true;
+}
+
+void WaitForNextIteration(int interval_seconds) {
+    int remaining_seconds = interval_seconds;
+    while (remaining_seconds > 0 && g_reload_requested == 0) {
+        const int chunk_seconds = remaining_seconds > 1 ? 1 : remaining_seconds;
+        std::this_thread::sleep_for(std::chrono::seconds(chunk_seconds));
+        remaining_seconds -= chunk_seconds;
+    }
+}
 
 ControlConfig BuildAutoConfig(const ParsedCommand& command) {
     ControlConfig config = command.config_path.has_value() ? LoadConfigFromFile(*command.config_path) : DefaultControlConfig();
@@ -33,12 +73,26 @@ ControlConfig BuildAutoConfig(const ParsedCommand& command) {
 }
 
 int RunAuto(const ParsedCommand& command, const IpmiClient& client) {
-    const ControlConfig config = BuildAutoConfig(command);
+    ControlConfig config = BuildAutoConfig(command);
     Logger::Info("Automatic mode started");
     Logger::Info(DescribeConfig(config));
 
     int last_speed = -1;
     while (true) {
+        if (ConsumeReloadRequest()) {
+            if (!command.config_path.has_value()) {
+                Logger::Error("Received reload request, but auto mode is using built-in defaults");
+            } else {
+                try {
+                    config = BuildAutoConfig(command);
+                    Logger::Info("Reloaded configuration from " + command.config_path->string());
+                    Logger::Info(DescribeConfig(config));
+                } catch (const std::exception& ex) {
+                    Logger::Error("Config reload failed; keeping the previous configuration: " + std::string(ex.what()));
+                }
+            }
+        }
+
         try {
             const int temperature = client.GetMaxCpuTemperature();
             const int target_speed = DetermineTargetFanSpeed(temperature, config);
@@ -66,7 +120,7 @@ int RunAuto(const ParsedCommand& command, const IpmiClient& client) {
             return 1;
         }
 
-        std::this_thread::sleep_for(std::chrono::seconds(config.interval_seconds));
+        WaitForNextIteration(config.interval_seconds);
     }
 }
 
@@ -84,6 +138,10 @@ int main(int argc, char** argv) {
         if (command.type == CommandType::kHelp) {
             std::cout << BuildUsage();
             return 0;
+        }
+
+        if (command.type == CommandType::kAuto) {
+            InstallReloadSignalHandler();
         }
 
         const auto runner = std::make_shared<PosixCommandRunner>();

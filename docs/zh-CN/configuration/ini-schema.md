@@ -36,6 +36,14 @@ English: [docs/configuration/ini-schema.md](../../configuration/ini-schema.md)
 
 如果 `auto` 未提供 `--config`，程序会直接使用内置默认配置，而不是读取 INI 文件。
 
+如果程序以已安装的 `systemd` 服务运行，修改对应 INI 文件后可执行：
+
+```bash
+sudo systemctl reload ipmi-fan-control
+```
+
+该重载流程会发送 `SIGHUP`，重新读取并校验 INI；如果新配置不合法，服务会保留上一份已生效配置继续运行。
+
 ## 示例
 
 ```ini
