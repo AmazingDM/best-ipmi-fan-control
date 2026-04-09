@@ -4,7 +4,7 @@
 
 Step-based IPMI fan control for Linux servers, implemented in C++. The tool reads temperature sensors through `ipmitool`, maps the highest temperature to a YAML-defined fan speed step, and can install itself as a `systemd` service.
 
-Simplified Chinese documentation: [docs/zh-CN/README.md](docs/zh-CN/README.md)
+中文文档: [docs/zh-CN/README.md](docs/zh-CN/README.md)
 
 ## Features
 
