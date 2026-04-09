@@ -1,5 +1,15 @@
 # Changelog
 
+Policy: every substantive change must be recorded under a new `## YYYY-MM-DD` entry and grouped under `### Changed`, `### Fixed`, and/or `### Breaking Changes` as applicable.
+
+## 2026-04-09
+
+### Changed
+
+- Updated release packaging to publish one executable asset per Linux architecture, with SHA256 checksums and no bundled `lib/` directory or `yaml-cpp` runtime.
+- Migrated user-facing docs, examples, and `systemd` unit templates from YAML references to INI references, including `config.ini` paths.
+- Clarified contributor guidance so substantive changes must add a dated changelog entry using the existing section structure.
+
 ## 2026-04-10
 
 ### Changed

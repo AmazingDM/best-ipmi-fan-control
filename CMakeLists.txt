@@ -8,8 +8,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(IPMI_FAN_CONTROL_BUILD_TESTS "构建测试 / Build tests" ON)
 
-find_package(yaml-cpp REQUIRED)
-
 add_library(ipmi_fan_control_lib
     src/cli.cpp
     src/config.cpp
@@ -25,11 +23,6 @@ target_include_directories(ipmi_fan_control_lib
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(ipmi_fan_control_lib
-    PUBLIC
-        yaml-cpp
-)
-
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(ipmi_fan_control_lib PRIVATE -Wall -Wextra -Wpedantic -Wconversion)
 elseif(MSVC)
@@ -38,14 +31,10 @@ endif()
 
 add_executable(ipmi-fan-control src/main.cpp)
 target_link_libraries(ipmi-fan-control PRIVATE ipmi_fan_control_lib)
-set_target_properties(ipmi-fan-control PROPERTIES
-    BUILD_RPATH "\$ORIGIN/lib"
-    INSTALL_RPATH "\$ORIGIN/lib"
-)
 
 include(GNUInstallDirs)
 install(TARGETS ipmi-fan-control RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(FILES examples/config.example.yaml DESTINATION ${CMAKE_INSTALL_DATADIR}/ipmi-fan-control)
+install(FILES examples/config.example.ini DESTINATION ${CMAKE_INSTALL_DATADIR}/ipmi-fan-control)
 install(FILES etc/systemd/system/ipmi-fan-control.service.example DESTINATION ${CMAKE_INSTALL_DATADIR}/ipmi-fan-control)
 
 if(IPMI_FAN_CONTROL_BUILD_TESTS)

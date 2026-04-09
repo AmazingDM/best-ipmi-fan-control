@@ -49,7 +49,7 @@ std::string EscapeSystemdArgument(const std::string& value) {
 std::string ReadFileContents(const std::filesystem::path& path) {
     std::ifstream input(path, std::ios::binary);
     if (!input) {
-        throw std::runtime_error("无法读取文件: " + path.string());
+        throw std::runtime_error("Unable to read file: " + path.string());
     }
 
     std::ostringstream buffer;
@@ -60,11 +60,11 @@ std::string ReadFileContents(const std::filesystem::path& path) {
 void WriteFileContents(const std::filesystem::path& path, const std::string& content) {
     std::ofstream output(path, std::ios::binary);
     if (!output) {
-        throw std::runtime_error("无法写入服务文件: " + path.string());
+        throw std::runtime_error("Unable to write service file: " + path.string());
     }
     output << content;
     if (!output) {
-        throw std::runtime_error("写入服务文件失败: " + path.string());
+        throw std::runtime_error("Failed to write service file: " + path.string());
     }
 }
 
@@ -89,18 +89,18 @@ std::string NormalizeServiceName(const std::string& service_name) {
     }
 
     if (normalized.empty()) {
-        throw std::runtime_error("service-name 不能为空");
+        throw std::runtime_error("service-name cannot be empty");
     }
 
     for (const unsigned char ch : normalized) {
         if (std::isalnum(ch) || ch == '-' || ch == '_' || ch == '.' || ch == '@') {
             continue;
         }
-        throw std::runtime_error("service-name 包含非法字符: " + service_name);
+        throw std::runtime_error("service-name contains invalid characters: " + service_name);
     }
 
     if (normalized == "." || normalized == "..") {
-        throw std::runtime_error("service-name 非法: " + service_name);
+        throw std::runtime_error("service-name is invalid: " + service_name);
     }
 
     return normalized;
@@ -110,7 +110,7 @@ std::string BuildSystemdUnit(const ServiceInstallOptions& options) {
     std::ostringstream stream;
     stream
         << "[Unit]\n"
-        << "Description=IPMI 风扇控制服务 / IPMI fan control service\n"
+        << "Description=IPMI fan control service\n"
         << "After=network-online.target\n"
         << "Wants=network-online.target\n\n"
         << "[Service]\n"
@@ -136,22 +136,22 @@ std::filesystem::path ResolveExecutablePath(const std::filesystem::path& argv0) 
 #endif
 
     if (argv0.empty()) {
-        throw std::runtime_error("无法解析当前可执行文件路径");
+        throw std::runtime_error("Unable to resolve the current executable path");
     }
     return std::filesystem::absolute(argv0);
 }
 
 void InstallService(const ServiceInstallOptions& options, const CommandRunner& runner) {
     if (options.config_path.empty()) {
-        throw std::runtime_error("配置文件路径不能为空");
+        throw std::runtime_error("Config path cannot be empty");
     }
     if (!std::filesystem::exists(options.config_path)) {
-        throw std::runtime_error("配置文件不存在: " + options.config_path.string());
+        throw std::runtime_error("Config file does not exist: " + options.config_path.string());
     }
 
     const std::string unit_content = BuildSystemdUnit(options);
     if (options.dry_run) {
-        throw std::runtime_error("dry-run 输出应由调用方处理");
+        throw std::runtime_error("dry-run output must be handled by the caller");
     }
 
     if (options.output_path.has_value()) {
@@ -160,7 +160,7 @@ void InstallService(const ServiceInstallOptions& options, const CommandRunner& r
         }
         std::ofstream output(*options.output_path, std::ios::binary);
         if (!output) {
-            throw std::runtime_error("无法写入服务文件: " + options.output_path->string());
+            throw std::runtime_error("Unable to write service file: " + options.output_path->string());
         }
         output << unit_content;
         return;
@@ -168,7 +168,7 @@ void InstallService(const ServiceInstallOptions& options, const CommandRunner& r
 
 #ifndef _WIN32
     if (geteuid() != 0) {
-        throw std::runtime_error("安装 systemd 服务需要 root 权限");
+        throw std::runtime_error("Installing a systemd service requires root privileges");
     }
 #endif
 
@@ -185,16 +185,21 @@ void InstallService(const ServiceInstallOptions& options, const CommandRunner& r
 
         const CommandResult reload = runner.Run({"systemctl", "daemon-reload"});
         if (reload.exit_code != 0) {
-            throw std::runtime_error("systemctl daemon-reload 失败: " + reload.output);
+            throw std::runtime_error("systemctl daemon-reload failed: " + reload.output);
         }
 
         enable_attempted = true;
         const CommandResult enable = runner.Run({"systemctl", "enable", "--now", service_name});
         if (enable.exit_code != 0) {
-            throw std::runtime_error("systemctl enable --now 失败: " + enable.output);
+            throw std::runtime_error("systemctl enable --now failed: " + enable.output);
         }
     } catch (const std::exception& ex) {
-        std::string rollback_note = "；已尝试回滚服务文件";
+        // 安装流程会同时修改 unit 文件、enable 状态和运行状态，失败时必须尽量恢复旧状态，
+        // 否则可能把主机留在“服务文件已替换但未成功启动”的危险半配置状态。
+        // The install path mutates the unit file, enable state, and runtime state together.
+        // On failure we best-effort roll everything back to avoid leaving the host in a
+        // partially updated and potentially non-boot-resilient service configuration.
+        std::string rollback_note = "; attempted to roll back the service file";
         try {
             if (had_existing_file) {
                 WriteFileContents(service_path, previous_content);
@@ -204,7 +209,7 @@ void InstallService(const ServiceInstallOptions& options, const CommandRunner& r
 
             const CommandResult rollback_reload = runner.Run({"systemctl", "daemon-reload"});
             if (rollback_reload.exit_code != 0) {
-                rollback_note += "，但 daemon-reload 回滚失败: " + rollback_reload.output;
+                rollback_note += ", but daemon-reload rollback failed: " + rollback_reload.output;
             }
 
             if (enable_attempted) {
@@ -213,8 +218,8 @@ void InstallService(const ServiceInstallOptions& options, const CommandRunner& r
                     : runner.Run({"systemctl", "disable", service_name});
                 if (enable_state.exit_code != 0) {
                     rollback_note += was_enabled
-                        ? "，且 enable 状态恢复失败: " + enable_state.output
-                        : "，且 disable 状态恢复失败: " + enable_state.output;
+                        ? ", and enable state restoration failed: " + enable_state.output
+                        : ", and disable state restoration failed: " + enable_state.output;
                 }
 
                 const CommandResult active_state = was_active
@@ -222,12 +227,12 @@ void InstallService(const ServiceInstallOptions& options, const CommandRunner& r
                     : runner.Run({"systemctl", "stop", service_name});
                 if (active_state.exit_code != 0) {
                     rollback_note += was_active
-                        ? "，且 active 状态恢复失败: " + active_state.output
-                        : "，且 stop 状态恢复失败: " + active_state.output;
+                        ? ", and active state restoration failed: " + active_state.output
+                        : ", and stop state restoration failed: " + active_state.output;
                 }
             }
         } catch (const std::exception& rollback_ex) {
-            rollback_note += "，但回滚失败: " + std::string(rollback_ex.what());
+            rollback_note += ", but rollback failed: " + std::string(rollback_ex.what());
         }
 
         throw std::runtime_error(std::string(ex.what()) + rollback_note);

@@ -13,8 +13,8 @@ struct FanStep {
     int fan_speed = 0;
 };
 
-// 自动控速配置，既可来自 YAML，也可来自内置默认值。
-// Auto-control configuration loaded from YAML or from built-in defaults.
+// 自动控速配置，既可来自 INI 文件，也可来自内置默认值。
+// Auto-control configuration loaded from an INI file or from built-in defaults.
 struct ControlConfig {
     int interval_seconds = 5;
     int full_speed_threshold = 70;

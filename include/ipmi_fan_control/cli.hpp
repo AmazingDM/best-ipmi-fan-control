@@ -11,7 +11,6 @@ enum class CommandType {
     kHelp,
     kAuto,
     kFixed,
-    kInfo,
     kValidateConfig,
     kInstallService,
 };

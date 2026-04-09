@@ -9,6 +9,6 @@ This index links to the main technical docs for building, configuring, and opera
 ## Pages
 
 - [Architecture overview](architecture/control-flow.md)
-- [YAML configuration reference](configuration/yaml-schema.md)
+- [INI configuration reference](configuration/ini-schema.md)
 - [GitHub Actions workflows](ci/github-actions.md)
 - [C++ migration summary](plans/cpp-migration-plan.md)

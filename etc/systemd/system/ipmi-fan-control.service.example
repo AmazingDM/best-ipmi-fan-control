@@ -1,5 +1,5 @@
 [Unit]
-Description=IPMI 风扇控制服务 / IPMI fan control service
+Description=IPMI fan control service
 After=network-online.target
 Wants=network-online.target
 
@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 Restart=always
 RestartSec=5
-ExecStart="/usr/bin/ipmi-fan-control" auto --config "/etc/ipmi-fan-control/config.yaml"
+ExecStart="/usr/bin/ipmi-fan-control" auto --config "/etc/ipmi-fan-control/config.ini"
 KillMode=mixed
 
 [Install]

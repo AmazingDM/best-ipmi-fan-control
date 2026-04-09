@@ -13,7 +13,7 @@ Triggers:
 
 Steps:
 
-1. Install the C++ build dependencies and `yaml-cpp`
+1. Install the C++ build dependencies
 2. Configure the project with CMake
 3. Build the project
 4. Run tests with CTest
@@ -31,12 +31,12 @@ Steps:
 
 1. Build on Linux `x86_64` and Linux `arm64`
 2. Run the test suite
-3. Package the binary together with the `yaml-cpp` runtime library, plus the example YAML, service template, README, and license
+3. Publish a single executable asset for each architecture without a bundled `lib/` directory or `yaml-cpp` runtime
 4. Generate SHA256 checksums
 5. Create a GitHub Release and upload the artifacts
 
 ## Maintenance Notes
 
 - Update both workflows when build dependencies change.
-- Add new runtime assets to the release packaging step when needed.
+- Keep release asset names and checksum generation aligned when packaging changes.
 - Validate runner availability and dependency installation strategy before adding more architectures.

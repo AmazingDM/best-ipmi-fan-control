@@ -13,7 +13,7 @@ English: [docs/ci/github-actions.md](../../ci/github-actions.md)
 
 执行步骤：
 
-1. 安装 C++ 构建依赖与 `yaml-cpp`
+1. 安装 C++ 构建依赖
 2. 使用 CMake 配置项目
 3. 编译项目
 4. 使用 CTest 执行测试
@@ -31,12 +31,12 @@ English: [docs/ci/github-actions.md](../../ci/github-actions.md)
 
 1. 分别在 Linux `x86_64` 和 Linux `arm64` 上构建
 2. 运行测试
-3. 打包二进制及其 `yaml-cpp` 运行库，同时附带示例 YAML、服务模板、README 和许可证
+3. 为每个架构发布单个可执行文件产物，不再附带 `lib/` 目录或 `yaml-cpp` 运行库
 4. 生成 SHA256 校验文件
 5. 创建 GitHub Release 并上传产物
 
 ## 维护建议
 
 - 构建依赖变化时，要同步更新两个工作流。
-- 新增运行时资源文件时，要同步加入 Release 打包步骤。
+- Release 打包方式调整时，要同步维护产物命名和 SHA256 校验生成逻辑。
 - 增加新架构前，先确认 GitHub runner 可用性与依赖安装方案。

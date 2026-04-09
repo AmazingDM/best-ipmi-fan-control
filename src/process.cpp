@@ -52,7 +52,7 @@ int NormalizeExitCode(int raw_exit_code) {
 
 CommandResult PosixCommandRunner::Run(const std::vector<std::string>& command) const {
     if (command.empty()) {
-        throw std::runtime_error("命令不能为空");
+        throw std::runtime_error("Command cannot be empty");
     }
 
 #ifdef _WIN32
@@ -67,7 +67,7 @@ CommandResult PosixCommandRunner::Run(const std::vector<std::string>& command) c
 
     FILE* pipe = popen(shell_command.str().c_str(), "r");
     if (pipe == nullptr) {
-        throw std::runtime_error("无法启动子进程");
+        throw std::runtime_error("Unable to start child process");
     }
 
     std::string output;
@@ -81,14 +81,14 @@ CommandResult PosixCommandRunner::Run(const std::vector<std::string>& command) c
 #else
     int pipe_fds[2] = {-1, -1};
     if (pipe(pipe_fds) != 0) {
-        throw std::runtime_error("无法创建子进程输出管道");
+        throw std::runtime_error("Unable to create child process output pipe");
     }
 
     const pid_t child_pid = fork();
     if (child_pid < 0) {
         close(pipe_fds[0]);
         close(pipe_fds[1]);
-        throw std::runtime_error("无法创建子进程");
+        throw std::runtime_error("Unable to create child process");
     }
 
     if (child_pid == 0) {
@@ -106,7 +106,7 @@ CommandResult PosixCommandRunner::Run(const std::vector<std::string>& command) c
 
         execvp(argv[0], argv.data());
 
-        const std::string error = "execvp 失败: " + std::string(std::strerror(errno)) + "\n";
+        const std::string error = "execvp failed: " + std::string(std::strerror(errno)) + "\n";
         write(STDERR_FILENO, error.c_str(), error.size());
         _exit(127);
     }
@@ -123,12 +123,12 @@ CommandResult PosixCommandRunner::Run(const std::vector<std::string>& command) c
     if (read_size < 0) {
         int status = 0;
         static_cast<void>(waitpid(child_pid, &status, 0));
-        throw std::runtime_error("读取子进程输出失败");
+        throw std::runtime_error("Failed to read child process output");
     }
 
     int status = 0;
     if (waitpid(child_pid, &status, 0) < 0) {
-        throw std::runtime_error("等待子进程结束失败");
+        throw std::runtime_error("Failed to wait for child process");
     }
 
     return {NormalizeExitCode(status), output};

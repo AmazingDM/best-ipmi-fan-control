@@ -17,13 +17,13 @@ int ParseIntValue(const std::string& raw_value, const std::string& option_name) 
         }
         return value;
     } catch (const std::exception&) {
-        throw UsageError("参数无效: " + option_name + "=" + raw_value);
+        throw UsageError("Invalid value: " + option_name + "=" + raw_value);
     }
 }
 
 std::string RequireValue(const std::vector<std::string>& args, size_t& index, const std::string& option_name) {
     if (index + 1 >= args.size()) {
-        throw UsageError("缺少参数值: " + option_name);
+        throw UsageError("Missing value for option: " + option_name);
     }
     ++index;
     return args[index];
@@ -57,13 +57,8 @@ ParsedCommand ParseCommandLine(int argc, char** argv) {
     const std::string command = args.front();
     if (command == "-h" || command == "--help" || command == "help") {
         parsed.type = CommandType::kHelp;
-        return parsed;
-    }
-
-    if (command == "info") {
-        parsed.type = CommandType::kInfo;
         if (args.size() != 1) {
-            throw UsageError("info 命令不接受额外参数");
+            throw UsageError("The help command does not accept extra arguments");
         }
         return parsed;
     }
@@ -71,7 +66,7 @@ ParsedCommand ParseCommandLine(int argc, char** argv) {
     if (command == "fixed") {
         parsed.type = CommandType::kFixed;
         if (args.size() != 2) {
-            throw UsageError("fixed 命令缺少风扇转速值");
+            throw UsageError("The fixed command requires a fan speed value");
         }
         parsed.fixed_value = ParseIntValue(args[1], "value");
         return parsed;
@@ -88,7 +83,7 @@ ParsedCommand ParseCommandLine(int argc, char** argv) {
             } else if (token == "--threshold") {
                 parsed.threshold_override = ParseIntValue(RequireValue(args, i, token), token);
             } else {
-                throw UsageError("未知参数: " + token);
+                throw UsageError("Unknown argument: " + token);
             }
         }
         return parsed;
@@ -101,11 +96,11 @@ ParsedCommand ParseCommandLine(int argc, char** argv) {
             if (token == "--config") {
                 parsed.config_path = RequireValue(args, i, token);
             } else {
-                throw UsageError("未知参数: " + token);
+                throw UsageError("Unknown argument: " + token);
             }
         }
         if (!parsed.config_path.has_value()) {
-            throw UsageError("validate-config 需要提供 --config");
+            throw UsageError("The validate-config command requires --config");
         }
         return parsed;
     }
@@ -127,11 +122,11 @@ ParsedCommand ParseCommandLine(int argc, char** argv) {
             } else if (token == "--dry-run") {
                 parsed.dry_run = true;
             } else {
-                throw UsageError("未知参数: " + token);
+                throw UsageError("Unknown argument: " + token);
             }
         }
         if (!parsed.config_path.has_value()) {
-            throw UsageError("install-service 需要提供 --config");
+            throw UsageError("The install-service command requires --config");
         }
         try {
             parsed.service_name = NormalizeServiceName(parsed.service_name);
@@ -141,28 +136,41 @@ ParsedCommand ParseCommandLine(int argc, char** argv) {
         return parsed;
     }
 
-    throw UsageError("未知命令: " + command);
+    throw UsageError("Unknown command: " + command);
 }
 
 std::string BuildUsage() {
     std::ostringstream stream;
     stream
-        << "用法:\n"
-        << "  ipmi-fan-control [--verbose] <command> [options]\n\n"
-        << "命令:\n"
-        << "  info\n"
-        << "      输出风扇与温度信息。\n"
+        << "ipmi-fan-control\n"
+        << "Step-based IPMI fan control for Linux servers.\n\n"
+        << "Usage:\n"
+        << "  ipmi-fan-control [--verbose] <command> [options]\n"
+        << "  ipmi-fan-control help\n"
+        << "  ipmi-fan-control --help\n\n"
+        << "Commands:\n"
+        << "  help\n"
+        << "      Show this help text.\n"
         << "  fixed <value>\n"
-        << "      设置固定风扇转速百分比，范围 0-100。\n"
+        << "      Set a fixed fan speed percentage in the range 0-100.\n"
         << "  auto [--config <path>] [--interval <sec>] [--threshold <temp>]\n"
-        << "      自动模式，可选使用 YAML 配置。\n"
+        << "      Run automatic control mode, optionally using an INI config.\n"
         << "  validate-config --config <path>\n"
-        << "      校验 YAML 配置是否合法。\n"
+        << "      Validate that an INI config is accepted.\n"
         << "  install-service --config <path> [--service-name <name>] [--output <file>] [--dry-run]\n"
-        << "      安装或生成 systemd 服务文件。\n\n"
-        << "全局选项:\n"
+        << "      Install or generate a systemd service file.\n\n"
+        << "Options:\n"
+        << "  -h, --help\n"
+        << "      Show this help text.\n"
         << "  --verbose\n"
-        << "      输出更详细的日志。\n";
+        << "      Print more detailed logs.\n\n"
+        << "Examples:\n"
+        << "  ipmi-fan-control\n"
+        << "  ipmi-fan-control help\n"
+        << "  ipmi-fan-control fixed 35\n"
+        << "  ipmi-fan-control auto --config examples/config.example.ini\n"
+        << "  ipmi-fan-control validate-config --config examples/config.example.ini\n"
+        << "  ipmi-fan-control install-service --config /etc/ipmi-fan-control/config.ini --dry-run\n";
     return stream.str();
 }
 

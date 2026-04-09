@@ -5,7 +5,7 @@ English: [docs/architecture/control-flow.md](../../architecture/control-flow.md)
 ## 运行流程
 
 1. 解析 CLI 参数并确定子命令。
-2. 对于 `auto` 模式，加载并校验 YAML 配置。
+2. 对于 `auto` 模式，加载并校验 INI 配置。
 3. 周期性执行 `ipmitool sdr type Temperature`。
 4. 提取输出中的最高温度。
 5. 使用阶梯式规则计算目标风扇转速。
@@ -15,7 +15,7 @@ English: [docs/architecture/control-flow.md](../../architecture/control-flow.md)
 ## 模块职责
 
 - `cli.cpp`：命令行解析与帮助输出
-- `config.cpp`：严格的 YAML 加载与校验，以及 `auto` 未提供 `--config` 时的内置默认值
+- `config.cpp`：严格的 INI 加载与校验，以及 `auto` 未提供 `--config` 时的内置默认值
 - `control.cpp`：温度到转速的阶梯匹配
 - `ipmi.cpp`：`ipmitool` 调用与输出解析
 - `service.cpp`：`systemd` 服务文件生成与安装
@@ -24,5 +24,5 @@ English: [docs/architecture/control-flow.md](../../architecture/control-flow.md)
 
 - 控制决策和进程执行逻辑分离，便于测试。
 - 配置模型刻意保持简单，只支持阶梯式控速。
-- 内置默认值只在 `auto` 未提供 YAML 文件时使用。
+- 内置默认值只在 `auto` 未提供 INI 文件时使用。
 - 写入风扇前会先切换到手动模式，保持既有硬件控制流程。

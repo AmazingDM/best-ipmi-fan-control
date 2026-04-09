@@ -19,7 +19,7 @@ std::string ToLower(std::string value) {
 
 void EnsureSuccess(const CommandResult& result, const std::string& command_name) {
     if (result.exit_code != 0) {
-        throw std::runtime_error(command_name + " 执行失败: " + result.output);
+        throw std::runtime_error(command_name + " failed: " + result.output);
     }
 }
 
@@ -54,7 +54,7 @@ int ParseMaxTemperature(const std::string& report) {
     }
 
     if (max_temperature < 0) {
-        throw std::runtime_error("未从 ipmitool 输出中解析到温度");
+        throw std::runtime_error("Failed to parse a temperature from ipmitool output");
     }
 
     return max_temperature;
@@ -62,7 +62,7 @@ int ParseMaxTemperature(const std::string& report) {
 
 std::string FormatFanSpeedHex(int speed) {
     if (speed < 0 || speed > 100) {
-        throw std::runtime_error("风扇转速必须在 0-100 之间");
+        throw std::runtime_error("Fan speed must be between 0 and 100");
     }
 
     std::ostringstream stream;
@@ -74,7 +74,7 @@ std::string FormatFanSpeedHex(int speed) {
 
 IpmiClient::IpmiClient(std::shared_ptr<CommandRunner> runner) : runner_(std::move(runner)) {
     if (runner_ == nullptr) {
-        throw std::runtime_error("CommandRunner 不能为空");
+        throw std::runtime_error("CommandRunner cannot be null");
     }
 }
 

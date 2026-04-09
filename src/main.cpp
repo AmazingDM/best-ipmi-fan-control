@@ -34,7 +34,7 @@ ControlConfig BuildAutoConfig(const ParsedCommand& command) {
 
 int RunAuto(const ParsedCommand& command, const IpmiClient& client) {
     const ControlConfig config = BuildAutoConfig(command);
-    Logger::Info("自动模式启动");
+    Logger::Info("Automatic mode started");
     Logger::Info(DescribeConfig(config));
 
     int last_speed = -1;
@@ -48,17 +48,20 @@ int RunAuto(const ParsedCommand& command, const IpmiClient& client) {
             if (target_speed != last_speed) {
                 client.SetFanSpeed(target_speed);
                 last_speed = target_speed;
-                Logger::Info("温度 " + std::to_string(temperature) + "°C，对应风扇转速 " + std::to_string(target_speed) + "%");
+                Logger::Info("Temperature " + std::to_string(temperature) + "°C -> fan speed " + std::to_string(target_speed) + "%");
             } else {
-                Logger::Trace("温度未跨越新阶梯，跳过重复设置");
+                Logger::Trace("Temperature stayed within the same step; skipping duplicate fan update");
             }
         } catch (const std::exception& ex) {
-            Logger::Error("自动控速失败: " + std::string(ex.what()));
+            Logger::Error("Automatic fan control failed: " + std::string(ex.what()));
             try {
+                // 出现异常时强制切到 100% 并立刻退出，让 systemd 的重启策略接管。
+                // On any control-loop failure, force 100% fan speed and exit immediately so
+                // systemd can restart the service instead of leaving the chassis in a risky state.
                 client.SetFanSpeed(100);
-                Logger::Error("已切换到 100% 风扇转速并退出，让 systemd 执行重启策略");
+                Logger::Error("Switched fans to 100% and exited so systemd can apply the restart policy");
             } catch (const std::exception& fail_safe_ex) {
-                Logger::Error("切换到 100% 风扇转速失败: " + std::string(fail_safe_ex.what()));
+                Logger::Error("Failed to switch fans to 100%: " + std::string(fail_safe_ex.what()));
             }
             return 1;
         }
@@ -101,19 +104,16 @@ int main(int argc, char** argv) {
             }
 
             InstallService(options, *runner);
-            Logger::Info("systemd 服务安装完成");
+            Logger::Info("systemd service installation completed");
             return 0;
         }
 
         const IpmiClient client(runner);
 
         switch (command.type) {
-            case CommandType::kInfo:
-                std::cout << client.GetInfoFanTemp();
-                return 0;
             case CommandType::kFixed:
                 client.SetFanSpeed(*command.fixed_value);
-                Logger::Info("已设置固定风扇转速 " + std::to_string(*command.fixed_value) + "%");
+                Logger::Info("Set fixed fan speed to " + std::to_string(*command.fixed_value) + "%");
                 return 0;
             case CommandType::kValidateConfig: {
                 const ControlConfig config = LoadConfigFromFile(*command.config_path);
@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
                 break;
         }
 
-        std::cerr << "未处理的命令类型" << std::endl;
+        std::cerr << "Unhandled command type" << std::endl;
         return 1;
     } catch (const UsageError& ex) {
         Logger::Error(ex.what());

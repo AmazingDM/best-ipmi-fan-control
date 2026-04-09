@@ -9,6 +9,6 @@ English: [README.md](../../README.md)
 ## 页面
 
 - [架构说明](architecture/control-flow.md)
-- [YAML 配置说明](configuration/yaml-schema.md)
+- [INI 配置说明](configuration/ini-schema.md)
 - [GitHub Actions 说明](ci/github-actions.md)
 - [C++ 迁移总结](plans/cpp-migration-plan.md)

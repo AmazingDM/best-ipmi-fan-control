@@ -19,12 +19,13 @@ ctest --test-dir build --output-on-failure
 ## Change Requirements
 
 - Add tests for hardware-related parsing or control logic changes whenever practical.
-- Update example YAML and configuration docs when the config structure changes.
+- Update example INI files and configuration docs when the config structure changes.
 - Update `README.md` when CLI behavior or installation flow changes.
+- Record every substantive change in `CHANGELOG.md` with a new `YYYY-MM-DD` entry and the relevant `Changed`, `Fixed`, and/or `Breaking Changes` subsections.
 
 ## Before Opening a PR
 
 - The project builds successfully.
 - Unit tests pass.
-- `validate-config` succeeds with the example YAML.
+- `validate-config` succeeds with the example INI.
 - `install-service --dry-run` outputs the expected `systemd` unit.
