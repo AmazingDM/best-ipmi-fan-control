@@ -1,13 +1,24 @@
-# Security Policy
+# 安全策略
 
-## Reporting a Vulnerability
+## 漏洞报告
 
-To report a security vulnerability, please email the maintainers at `me@yinheli.com`. Please do not create a Github issue
-for security vulnerabilities.
+如果你发现了与本项目相关的安全问题，请不要直接提交公开 Issue，而是通过维护者公开联系方式私下报告。
 
-If you can, please include the following details:
+建议在报告中尽量包含以下信息：
 
-- An MCVE (minimum complete verifiable example) – this is a short code snippet which demonstrates the error in the
-  the simplest possible (or just a simple) way.
-- Which versions of Yew the vulnerability is present in
-- What effects the vulnerability has and how serious the vulnerability is
+- 受影响的版本号
+- 复现步骤
+- 预期行为与实际行为
+- 风险影响范围
+- 如有可能，附上最小可复现示例
+
+## 特别说明
+
+本项目会直接调用 `ipmitool` 并修改服务器风扇转速，因此以下问题也应被视为安全或稳定性风险：
+
+- 风扇转速限制失效
+- 温度解析错误导致的错误控速
+- 配置文件校验缺陷
+- 服务安装逻辑导致的权限或路径问题
+
+涉及上述问题的报告，请明确说明运行环境、BMC 类型、`ipmitool` 版本以及相关日志片段。

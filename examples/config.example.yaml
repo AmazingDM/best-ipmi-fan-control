@@ -1,0 +1,23 @@
+# IPMI 风扇控制示例配置 / Example configuration for IPMI fan control
+
+# 温度采样间隔，单位秒。
+# Temperature polling interval in seconds.
+interval_seconds: 5
+
+# 达到该温度后直接拉满风扇。
+# Force fan speed to 100% once the temperature reaches this threshold.
+full_speed_threshold: 70
+
+# 阶梯式控速规则，按 max_temp 升序排列。
+# Step-based fan curve sorted by max_temp in ascending order.
+steps:
+  - max_temp: 40
+    fan_speed: 0
+  - max_temp: 50
+    fan_speed: 10
+  - max_temp: 58
+    fan_speed: 30
+  - max_temp: 64
+    fan_speed: 50
+  - max_temp: 69
+    fan_speed: 80
