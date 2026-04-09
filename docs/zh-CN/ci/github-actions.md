@@ -31,9 +31,16 @@ English: [docs/ci/github-actions.md](../../ci/github-actions.md)
 
 1. 分别在 Linux `x86_64` 和 Linux `arm64` 上构建
 2. 运行测试
-3. 为每个架构发布单个可执行文件产物，不再附带 `lib/` 目录或 `yaml-cpp` 运行库
-4. 生成 SHA256 校验文件
-5. 创建 GitHub Release 并上传产物
+3. 使用 Ubuntu 22.04 runner 构建 Release，避免继承 Ubuntu 24.04 较新的 glibc 依赖
+4. 上传前对每个架构的最终可执行文件执行 strip
+5. 为每个架构发布单个可执行文件产物，不再附带 `lib/` 目录或 `yaml-cpp` 运行库
+6. 生成 SHA256 校验文件
+7. 创建 GitHub Release 并上传产物
+
+## 可移植性说明
+
+- Release 产物改为在 Ubuntu 22.04 上构建，避免引入 `GLIBC_2.38` 这类在较老 Linux 系统上不存在的依赖。
+- Release 上传前会先 strip，因此最终产物大小会更接近日常本机构建后手动分发的可执行文件。
 
 ## 维护建议
 

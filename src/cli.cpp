@@ -63,6 +63,14 @@ ParsedCommand ParseCommandLine(int argc, char** argv) {
         return parsed;
     }
 
+    if (command == "-v" || command == "--version" || command == "version") {
+        parsed.type = CommandType::kVersion;
+        if (args.size() != 1) {
+            throw UsageError("The version command does not accept extra arguments");
+        }
+        return parsed;
+    }
+
     if (command == "fixed") {
         parsed.type = CommandType::kFixed;
         if (args.size() != 2) {
@@ -173,6 +181,8 @@ std::string BuildUsage() {
         << "Commands:\n"
         << "  help\n"
         << "      Show this help text.\n"
+        << "  version\n"
+        << "      Show the build version.\n"
         << "  fixed <value>\n"
         << "      Set a fixed fan speed percentage in the range 0-100.\n"
         << "  auto [--config <path>] [--interval <sec>] [--threshold <temp>]\n"
@@ -191,6 +201,7 @@ std::string BuildUsage() {
         << "Examples:\n"
         << "  ipmi-fan-control\n"
         << "  ipmi-fan-control help\n"
+        << "  ipmi-fan-control --version\n"
         << "  ipmi-fan-control fixed 35\n"
         << "  ipmi-fan-control auto --config examples/config.example.ini\n"
         << "  ipmi-fan-control validate-config --config examples/config.example.ini\n"

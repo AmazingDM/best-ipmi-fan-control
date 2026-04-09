@@ -8,6 +8,30 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(IPMI_FAN_CONTROL_BUILD_TESTS "构建测试 / Build tests" ON)
 
+# Derive short git SHA for version suffix; fall back safely when .git is absent.
+find_package(Git QUIET)
+set(_GIT_SHA "unknown")
+if(Git_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
+    execute_process(
+        COMMAND "${GIT_EXECUTABLE}" rev-parse --short HEAD
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        OUTPUT_VARIABLE _GIT_SHA
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+        RESULT_VARIABLE _GIT_RESULT
+    )
+    if(NOT _GIT_RESULT EQUAL 0)
+        set(_GIT_SHA "unknown")
+    endif()
+endif()
+set(IPMI_FAN_CONTROL_VERSION "v${PROJECT_VERSION}-git-${_GIT_SHA}")
+
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/ipmi_fan_control/version.hpp.in
+    ${CMAKE_CURRENT_BINARY_DIR}/include/ipmi_fan_control/version.hpp
+    @ONLY
+)
+
 add_library(ipmi_fan_control_lib
     src/cli.cpp
     src/config.cpp
@@ -20,6 +44,7 @@ add_library(ipmi_fan_control_lib
 
 target_include_directories(ipmi_fan_control_lib
     PUBLIC
+        ${CMAKE_CURRENT_BINARY_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 

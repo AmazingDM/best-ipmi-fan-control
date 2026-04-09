@@ -19,10 +19,10 @@ jobs:
       matrix:
         include:
           - arch: x86_64
-            runs_on: ubuntu-24.04
+            runs_on: ubuntu-22.04
             asset_name: ipmi-fan-control-linux-x86_64
           - arch: arm64
-            runs_on: ubuntu-24.04-arm
+            runs_on: ubuntu-22.04-arm
             asset_name: ipmi-fan-control-linux-arm64
 
     runs-on: ${{ matrix.runs_on }}
@@ -49,6 +49,9 @@ jobs:
         run: |
           cp build/ipmi-fan-control "${{ matrix.asset_name }}"
           chmod 755 "${{ matrix.asset_name }}"
+
+      - name: Strip executable artifact
+        run: strip --strip-all "${{ matrix.asset_name }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

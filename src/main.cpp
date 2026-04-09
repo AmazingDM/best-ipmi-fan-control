@@ -5,6 +5,7 @@
 #include "ipmi_fan_control/logger.hpp"
 #include "ipmi_fan_control/process.hpp"
 #include "ipmi_fan_control/service.hpp"
+#include "ipmi_fan_control/version.hpp"
 
 #include <chrono>
 #include <csignal>
@@ -140,6 +141,11 @@ int main(int argc, char** argv) {
             return 0;
         }
 
+        if (command.type == CommandType::kVersion) {
+            std::cout << kVersionString << std::endl;
+            return 0;
+        }
+
         if (command.type == CommandType::kAuto) {
             InstallReloadSignalHandler();
         }
@@ -187,6 +193,7 @@ int main(int argc, char** argv) {
             case CommandType::kAuto:
                 return RunAuto(command, client);
             case CommandType::kHelp:
+            case CommandType::kVersion:
             case CommandType::kInstallService:
             case CommandType::kUninstallService:
                 break;

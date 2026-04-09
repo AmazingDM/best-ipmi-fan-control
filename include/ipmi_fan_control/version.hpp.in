@@ -1,0 +1,7 @@
+#pragma once
+
+namespace ipmi_fan_control {
+
+inline constexpr const char* kVersionString = "@IPMI_FAN_CONTROL_VERSION@";
+
+}  // namespace ipmi_fan_control

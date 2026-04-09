@@ -3,6 +3,7 @@
 #include "ipmi_fan_control/control.hpp"
 #include "ipmi_fan_control/ipmi.hpp"
 #include "ipmi_fan_control/service.hpp"
+#include "ipmi_fan_control/version.hpp"
 
 #include <chrono>
 #include <deque>
@@ -328,6 +329,35 @@ void TestParseCommandLineAcceptsHelpCommand() {
     Expect(parsed.type == ipmi_fan_control::CommandType::kHelp, "The help command should parse as help");
 }
 
+void TestParseCommandLineAcceptsVersionCommand() {
+    const char* argv[] = {
+        "ipmi-fan-control",
+        "version",
+    };
+
+    const ipmi_fan_control::ParsedCommand parsed = ipmi_fan_control::ParseCommandLine(2, const_cast<char**>(argv));
+    Expect(parsed.type == ipmi_fan_control::CommandType::kVersion, "The version command should parse as version");
+}
+
+void TestParseCommandLineAcceptsVersionFlag() {
+    const char* argv[] = {
+        "ipmi-fan-control",
+        "--version",
+    };
+
+    const ipmi_fan_control::ParsedCommand parsed = ipmi_fan_control::ParseCommandLine(2, const_cast<char**>(argv));
+    Expect(parsed.type == ipmi_fan_control::CommandType::kVersion, "The --version flag should parse as version");
+}
+
+void TestVersionStringFormat() {
+    std::string v = ipmi_fan_control::kVersionString;
+    // Expected format: v<major>.<minor>.<patch>-git-<sha> or v<version>-git-unknown
+    bool starts_with_v = !v.empty() && v[0] == 'v';
+    bool has_git_infix = v.find("-git-") != std::string::npos;
+    Expect(starts_with_v && has_git_infix,
+        "Expected generated version string to match format v<version>-git-<sha>");
+}
+
 void TestParseCommandLineRejectsLegacyInfoCommand() {
     const char* argv[] = {
         "ipmi-fan-control",
@@ -350,6 +380,7 @@ void TestBuildUsageLooksLikeStandardHelp() {
     Expect(usage.find("Options:\n") != std::string::npos, "Help text should contain an Options section");
     Expect(usage.find("Examples:\n") != std::string::npos, "Help text should contain an Examples section");
     Expect(usage.find("  help\n") != std::string::npos, "Help text should list the help command");
+    Expect(usage.find("  version\n") != std::string::npos, "Help text should list the version command");
     Expect(usage.find("  uninstall-service [--service-name <name>]\n") != std::string::npos,
         "Help text should list the uninstall-service command");
 }
@@ -374,6 +405,9 @@ int main() {
         {"UninstallServiceNoopWhenUnitIsAbsent", TestUninstallServiceNoopWhenUnitIsAbsent},
         {"ParseCommandLineDefaultsToHelp", TestParseCommandLineDefaultsToHelp},
         {"ParseCommandLineAcceptsHelpCommand", TestParseCommandLineAcceptsHelpCommand},
+        {"ParseCommandLineAcceptsVersionCommand", TestParseCommandLineAcceptsVersionCommand},
+        {"ParseCommandLineAcceptsVersionFlag", TestParseCommandLineAcceptsVersionFlag},
+        {"VersionStringFormat", TestVersionStringFormat},
         {"ParseCommandLineRejectsLegacyInfoCommand", TestParseCommandLineRejectsLegacyInfoCommand},
         {"BuildUsageLooksLikeStandardHelp", TestBuildUsageLooksLikeStandardHelp},
     };

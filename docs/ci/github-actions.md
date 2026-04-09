@@ -31,9 +31,16 @@ Steps:
 
 1. Build on Linux `x86_64` and Linux `arm64`
 2. Run the test suite
-3. Publish a single executable asset for each architecture without a bundled `lib/` directory or `yaml-cpp` runtime
-4. Generate SHA256 checksums
-5. Create a GitHub Release and upload the artifacts
+3. Build release artifacts on Ubuntu 22.04 runners to target an older glibc baseline than Ubuntu 24.04
+4. Strip the final executable for each architecture before upload
+5. Publish a single executable asset for each architecture without a bundled `lib/` directory or `yaml-cpp` runtime
+6. Generate SHA256 checksums
+7. Create a GitHub Release and upload the artifacts
+
+## Portability Notes
+
+- Release binaries are built on Ubuntu 22.04 so they do not pick up newer glibc requirements such as `GLIBC_2.38` from Ubuntu 24.04 runners.
+- Release artifacts are stripped before upload, which keeps them closer in size to locally packaged binaries.
 
 ## Maintenance Notes
 

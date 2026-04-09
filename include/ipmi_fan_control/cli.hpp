@@ -9,6 +9,7 @@ namespace ipmi_fan_control {
 
 enum class CommandType {
     kHelp,
+    kVersion,
     kAuto,
     kFixed,
     kValidateConfig,

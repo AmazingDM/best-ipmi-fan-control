@@ -9,7 +9,7 @@ Step-based IPMI fan control for Linux servers, implemented in C++. The tool read
 ## Features
 
 - Step-based fan control driven by a single INI file
-- CLI commands for `help`, `fixed`, `auto`, `validate-config`, `install-service`, and `uninstall-service`
+- CLI commands for `help`, `version`, `fixed`, `auto`, `validate-config`, `install-service`, and `uninstall-service`
 - `systemd` service installation with a specified config path
 - GitHub Actions CI for build and test validation
 - Manual GitHub Release workflow for Linux `x86_64` and `arm64`
@@ -50,7 +50,7 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-GitHub Releases publish one Linux executable per target architecture plus a `.sha256` checksum. Release assets no longer bundle a `lib/` directory or any extra parser runtime.
+GitHub Releases publish one Linux executable per target architecture plus a `.sha256` checksum. Release assets no longer bundle a `lib/` directory or any extra parser runtime, and the release workflow strips the final executable before upload.
 
 ## Quick Start
 
@@ -58,6 +58,12 @@ Show the built-in help:
 
 ```bash
 ./build/ipmi-fan-control
+```
+
+Show the build version:
+
+```bash
+./build/ipmi-fan-control --version
 ```
 
 Set a fixed fan speed:
