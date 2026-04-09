@@ -136,6 +136,28 @@ ParsedCommand ParseCommandLine(int argc, char** argv) {
         return parsed;
     }
 
+    if (command == "uninstall-service") {
+        parsed.type = CommandType::kUninstallService;
+        for (size_t i = 1; i < args.size(); ++i) {
+            const std::string& token = args[i];
+            if (token == "--service-name") {
+                try {
+                    parsed.service_name = NormalizeServiceName(RequireValue(args, i, token));
+                } catch (const std::exception& ex) {
+                    throw UsageError(ex.what());
+                }
+            } else {
+                throw UsageError("Unknown argument: " + token);
+            }
+        }
+        try {
+            parsed.service_name = NormalizeServiceName(parsed.service_name);
+        } catch (const std::exception& ex) {
+            throw UsageError(ex.what());
+        }
+        return parsed;
+    }
+
     throw UsageError("Unknown command: " + command);
 }
 
@@ -158,7 +180,9 @@ std::string BuildUsage() {
         << "  validate-config --config <path>\n"
         << "      Validate that an INI config is accepted.\n"
         << "  install-service --config <path> [--service-name <name>] [--output <file>] [--dry-run]\n"
-        << "      Install or generate a systemd service file.\n\n"
+        << "      Install or generate a systemd service file.\n"
+        << "  uninstall-service [--service-name <name>]\n"
+        << "      Stop, disable, and remove an installed systemd service.\n\n"
         << "Options:\n"
         << "  -h, --help\n"
         << "      Show this help text.\n"
@@ -170,7 +194,8 @@ std::string BuildUsage() {
         << "  ipmi-fan-control fixed 35\n"
         << "  ipmi-fan-control auto --config examples/config.example.ini\n"
         << "  ipmi-fan-control validate-config --config examples/config.example.ini\n"
-        << "  ipmi-fan-control install-service --config /etc/ipmi-fan-control/config.ini --dry-run\n";
+        << "  ipmi-fan-control install-service --config /etc/ipmi-fan-control/config.ini --dry-run\n"
+        << "  ipmi-fan-control uninstall-service\n";
     return stream.str();
 }
 

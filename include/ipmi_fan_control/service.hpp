@@ -20,6 +20,7 @@ struct ServiceInstallOptions {
 
 std::string BuildSystemdUnit(const ServiceInstallOptions& options);
 void InstallService(const ServiceInstallOptions& options, const CommandRunner& runner);
+void UninstallService(const std::string& service_name, const CommandRunner& runner);
 std::filesystem::path ResolveExecutablePath(const std::filesystem::path& argv0);
 std::string NormalizeServiceName(const std::string& service_name);
 

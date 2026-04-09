@@ -9,7 +9,7 @@ Step-based IPMI fan control for Linux servers, implemented in C++. The tool read
 ## Features
 
 - Step-based fan control driven by a single INI file
-- CLI commands for `help`, `fixed`, `auto`, `validate-config`, and `install-service`
+- CLI commands for `help`, `fixed`, `auto`, `validate-config`, `install-service`, and `uninstall-service`
 - `systemd` service installation with a specified config path
 - GitHub Actions CI for build and test validation
 - Manual GitHub Release workflow for Linux `x86_64` and `arm64`
@@ -90,6 +90,12 @@ Install and enable the `systemd` service:
 sudo ./build/ipmi-fan-control install-service --config /etc/ipmi-fan-control/config.ini
 ```
 
+Uninstall the `systemd` service:
+
+```bash
+sudo ./build/ipmi-fan-control uninstall-service
+```
+
 Manage the service after installation:
 
 ```bash
@@ -101,6 +107,8 @@ systemctl status ipmi-fan-control
 ```
 
 After editing `config.ini`, run `sudo systemctl reload ipmi-fan-control` to hot-reload the file without restarting the process. If you change the unit file itself, run `sudo systemctl daemon-reload` before restarting or reloading the service.
+
+`uninstall-service` removes the installed systemd unit and clears its runtime state, but it does not delete your config file.
 
 ## Example INI
 

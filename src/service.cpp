@@ -78,6 +78,11 @@ bool IsSystemdUnitActive(const CommandRunner& runner, const std::string& service
     return result.exit_code == 0;
 }
 
+bool IsSystemdUnitKnown(const CommandRunner& runner, const std::string& service_name) {
+    const CommandResult result = runner.Run({"systemctl", "status", "--no-pager", service_name});
+    return result.exit_code == 0 || result.exit_code == 3 || result.output.find("Loaded:") != std::string::npos;
+}
+
 }  // namespace
 
 std::string NormalizeServiceName(const std::string& service_name) {
@@ -237,6 +242,51 @@ void InstallService(const ServiceInstallOptions& options, const CommandRunner& r
         }
 
         throw std::runtime_error(std::string(ex.what()) + rollback_note);
+    }
+}
+
+void UninstallService(const std::string& service_name_input, const CommandRunner& runner) {
+#ifndef _WIN32
+    if (geteuid() != 0) {
+        throw std::runtime_error("Uninstalling a systemd service requires root privileges");
+    }
+#endif
+
+    const std::string service_name = NormalizeServiceName(service_name_input);
+    const std::filesystem::path service_path = std::filesystem::path("/etc/systemd/system") / (service_name + ".service");
+    const bool unit_exists = std::filesystem::exists(service_path);
+    const bool was_enabled = IsSystemdUnitEnabled(runner, service_name);
+    const bool was_active = IsSystemdUnitActive(runner, service_name);
+    const bool unit_known = unit_exists || was_enabled || was_active || IsSystemdUnitKnown(runner, service_name);
+
+    if (was_active) {
+        const CommandResult stop = runner.Run({"systemctl", "stop", service_name});
+        if (stop.exit_code != 0) {
+            throw std::runtime_error("systemctl stop failed: " + stop.output);
+        }
+    }
+
+    if (was_enabled) {
+        const CommandResult disable = runner.Run({"systemctl", "disable", service_name});
+        if (disable.exit_code != 0) {
+            throw std::runtime_error("systemctl disable failed: " + disable.output);
+        }
+    }
+
+    if (unit_exists) {
+        std::filesystem::remove(service_path);
+    }
+
+    if (unit_exists || unit_known) {
+        const CommandResult reload = runner.Run({"systemctl", "daemon-reload"});
+        if (reload.exit_code != 0) {
+            throw std::runtime_error("systemctl daemon-reload failed: " + reload.output);
+        }
+
+        const CommandResult reset_failed = runner.Run({"systemctl", "reset-failed", service_name});
+        if (reset_failed.exit_code != 0) {
+            throw std::runtime_error("systemctl reset-failed failed: " + reset_failed.output);
+        }
     }
 }
 

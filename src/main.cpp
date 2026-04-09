@@ -166,6 +166,12 @@ int main(int argc, char** argv) {
             return 0;
         }
 
+        if (command.type == CommandType::kUninstallService) {
+            UninstallService(command.service_name, *runner);
+            Logger::Info("systemd service uninstallation completed");
+            return 0;
+        }
+
         const IpmiClient client(runner);
 
         switch (command.type) {
@@ -182,6 +188,7 @@ int main(int argc, char** argv) {
                 return RunAuto(command, client);
             case CommandType::kHelp:
             case CommandType::kInstallService:
+            case CommandType::kUninstallService:
                 break;
         }
 

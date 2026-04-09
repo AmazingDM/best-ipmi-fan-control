@@ -5,6 +5,7 @@
 #include "ipmi_fan_control/service.hpp"
 
 #include <chrono>
+#include <deque>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -13,7 +14,31 @@
 #include <string>
 #include <vector>
 
+#ifndef _WIN32
+#include <unistd.h>
+#endif
+
 namespace {
+
+class StubCommandRunner final : public ipmi_fan_control::CommandRunner {
+public:
+    struct Call {
+        std::vector<std::string> command;
+    };
+
+    mutable std::vector<Call> calls;
+    std::deque<ipmi_fan_control::CommandResult> responses;
+
+    ipmi_fan_control::CommandResult Run(const std::vector<std::string>& command) const override {
+        calls.push_back({command});
+        if (responses.empty()) {
+            throw std::runtime_error("No stubbed response available");
+        }
+        const ipmi_fan_control::CommandResult result = responses.front();
+        const_cast<StubCommandRunner*>(this)->responses.pop_front();
+        return result;
+    }
+};
 
 void Expect(bool condition, const std::string& message) {
     if (!condition) {
@@ -236,6 +261,54 @@ void TestParseCommandLineRejectsInvalidServiceName() {
     Expect(threw_usage_error, "CLI should reject an invalid service name");
 }
 
+void TestParseCommandLineAcceptsUninstallService() {
+    const char* argv[] = {
+        "ipmi-fan-control",
+        "uninstall-service",
+        "--service-name",
+        "rack-fans",
+    };
+
+    const ipmi_fan_control::ParsedCommand parsed = ipmi_fan_control::ParseCommandLine(4, const_cast<char**>(argv));
+    Expect(parsed.type == ipmi_fan_control::CommandType::kUninstallService, "Expected uninstall-service command type");
+    Expect(parsed.service_name == "rack-fans", "Expected uninstall-service to keep the provided service name");
+}
+
+void TestParseCommandLineRejectsInvalidUninstallServiceName() {
+    const char* argv[] = {
+        "ipmi-fan-control",
+        "uninstall-service",
+        "--service-name",
+        "../escape",
+    };
+
+    bool threw_usage_error = false;
+    try {
+        static_cast<void>(ipmi_fan_control::ParseCommandLine(4, const_cast<char**>(argv)));
+    } catch (const ipmi_fan_control::UsageError&) {
+        threw_usage_error = true;
+    }
+    Expect(threw_usage_error, "CLI should reject an invalid uninstall service name");
+}
+
+void TestUninstallServiceNoopWhenUnitIsAbsent() {
+#ifndef _WIN32
+    if (geteuid() != 0) {
+        return;
+    }
+#endif
+
+    StubCommandRunner runner;
+    runner.responses = {
+        {1, "not enabled\n"},
+        {3, "inactive\n"},
+        {4, "Unit ipmi-fan-control.service could not be found.\n"},
+    };
+
+    ipmi_fan_control::UninstallService("ipmi-fan-control", runner);
+    Expect(runner.calls.size() == 3, "Uninstall should only probe state when the unit is already absent");
+}
+
 void TestParseCommandLineDefaultsToHelp() {
     const char* argv[] = {
         "ipmi-fan-control",
@@ -277,6 +350,8 @@ void TestBuildUsageLooksLikeStandardHelp() {
     Expect(usage.find("Options:\n") != std::string::npos, "Help text should contain an Options section");
     Expect(usage.find("Examples:\n") != std::string::npos, "Help text should contain an Examples section");
     Expect(usage.find("  help\n") != std::string::npos, "Help text should list the help command");
+    Expect(usage.find("  uninstall-service [--service-name <name>]\n") != std::string::npos,
+        "Help text should list the uninstall-service command");
 }
 
 }  // namespace
@@ -294,6 +369,9 @@ int main() {
         {"SystemdUnitBuilder", TestSystemdUnitBuilder},
         {"NormalizeServiceName", TestNormalizeServiceName},
         {"ParseCommandLineRejectsInvalidServiceName", TestParseCommandLineRejectsInvalidServiceName},
+        {"ParseCommandLineAcceptsUninstallService", TestParseCommandLineAcceptsUninstallService},
+        {"ParseCommandLineRejectsInvalidUninstallServiceName", TestParseCommandLineRejectsInvalidUninstallServiceName},
+        {"UninstallServiceNoopWhenUnitIsAbsent", TestUninstallServiceNoopWhenUnitIsAbsent},
         {"ParseCommandLineDefaultsToHelp", TestParseCommandLineDefaultsToHelp},
         {"ParseCommandLineAcceptsHelpCommand", TestParseCommandLineAcceptsHelpCommand},
         {"ParseCommandLineRejectsLegacyInfoCommand", TestParseCommandLineRejectsLegacyInfoCommand},

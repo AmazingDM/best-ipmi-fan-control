@@ -13,6 +13,7 @@ enum class CommandType {
     kFixed,
     kValidateConfig,
     kInstallService,
+    kUninstallService,
 };
 
 struct ParsedCommand {
