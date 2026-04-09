@@ -1,8 +1,10 @@
+#include "ipmi_fan_control/cli.hpp"
 #include "ipmi_fan_control/config.hpp"
 #include "ipmi_fan_control/control.hpp"
 #include "ipmi_fan_control/ipmi.hpp"
 #include "ipmi_fan_control/service.hpp"
 
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -17,6 +19,14 @@ void Expect(bool condition, const std::string& message) {
     if (!condition) {
         throw std::runtime_error(message);
     }
+}
+
+std::filesystem::path CreateUniqueTempDirectory() {
+    const auto unique_value = std::chrono::steady_clock::now().time_since_epoch().count();
+    const std::filesystem::path path =
+        std::filesystem::temp_directory_path() / ("ipmi-fan-control-tests-" + std::to_string(unique_value));
+    std::filesystem::create_directories(path);
+    return path;
 }
 
 void TestParseMaxTemperature() {
@@ -48,8 +58,7 @@ void TestControlRule() {
 }
 
 void TestLoadYamlConfig() {
-    const std::filesystem::path temp_dir = std::filesystem::temp_directory_path() / "ipmi-fan-control-tests";
-    std::filesystem::create_directories(temp_dir);
+    const std::filesystem::path temp_dir = CreateUniqueTempDirectory();
     const std::filesystem::path config_path = temp_dir / "valid.yaml";
 
     std::ofstream output(config_path, std::ios::binary);
@@ -67,15 +76,122 @@ void TestLoadYamlConfig() {
     Expect(config.interval_seconds == 6, "应读取 interval_seconds");
     Expect(config.full_speed_threshold == 75, "应读取 full_speed_threshold");
     Expect(config.steps.size() == 2, "应读取两条阶梯");
+
+    std::filesystem::remove_all(temp_dir);
+}
+
+void TestLoadYamlConfigRejectsMissingField() {
+    const std::filesystem::path temp_dir = CreateUniqueTempDirectory();
+    const std::filesystem::path config_path = temp_dir / "missing-field.yaml";
+
+    std::ofstream output(config_path, std::ios::binary);
+    output
+        << "interval_seconds: 6\n"
+        << "steps:\n"
+        << "  - max_temp: 45\n"
+        << "    fan_speed: 10\n";
+    output.close();
+
+    bool threw = false;
+    try {
+        static_cast<void>(ipmi_fan_control::LoadConfigFromFile(config_path));
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    Expect(threw, "缺少字段的 YAML 应被拒绝");
+
+    std::filesystem::remove_all(temp_dir);
+}
+
+void TestLoadYamlConfigRejectsUnknownField() {
+    const std::filesystem::path temp_dir = CreateUniqueTempDirectory();
+    const std::filesystem::path config_path = temp_dir / "unknown-field.yaml";
+
+    std::ofstream output(config_path, std::ios::binary);
+    output
+        << "interval_seconds: 6\n"
+        << "full_speed_threshold: 75\n"
+        << "steps:\n"
+        << "  - max_temp: 45\n"
+        << "    fan_speed: 10\n"
+        << "unexpected_field: true\n";
+    output.close();
+
+    bool threw = false;
+    try {
+        static_cast<void>(ipmi_fan_control::LoadConfigFromFile(config_path));
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    Expect(threw, "包含未知字段的 YAML 应被拒绝");
+
+    std::filesystem::remove_all(temp_dir);
+}
+
+void TestLoadYamlConfigRejectsUnknownStepField() {
+    const std::filesystem::path temp_dir = CreateUniqueTempDirectory();
+    const std::filesystem::path config_path = temp_dir / "unknown-step-field.yaml";
+
+    std::ofstream output(config_path, std::ios::binary);
+    output
+        << "interval_seconds: 6\n"
+        << "full_speed_threshold: 75\n"
+        << "steps:\n"
+        << "  - max_temp: 45\n"
+        << "    fan_speed: 10\n"
+        << "    note: unsafe\n";
+    output.close();
+
+    bool threw = false;
+    try {
+        static_cast<void>(ipmi_fan_control::LoadConfigFromFile(config_path));
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    Expect(threw, "steps 内的未知字段应被拒绝");
+
+    std::filesystem::remove_all(temp_dir);
 }
 
 void TestSystemdUnitBuilder() {
     ipmi_fan_control::ServiceInstallOptions options;
-    options.executable_path = "/usr/bin/ipmi-fan-control";
-    options.config_path = "/etc/ipmi-fan-control/config.yaml";
+    options.executable_path = "/usr/bin/IPMI Fan/ipmi-fan-control";
+    options.config_path = "/etc/ipmi fan/100%/config.yaml";
     const std::string unit = ipmi_fan_control::BuildSystemdUnit(options);
-    Expect(unit.find("ExecStart=/usr/bin/ipmi-fan-control auto --config /etc/ipmi-fan-control/config.yaml") != std::string::npos,
-        "服务文件应写入配置路径");
+    Expect(unit.find("ExecStart=\"/usr/bin/IPMI Fan/ipmi-fan-control\" auto --config \"/etc/ipmi fan/100%%/config.yaml\"") != std::string::npos,
+        "服务文件应正确转义带空格和百分号的路径");
+}
+
+void TestNormalizeServiceName() {
+    Expect(ipmi_fan_control::NormalizeServiceName("rack-fans.service") == "rack-fans", "应去掉 .service 后缀");
+    Expect(ipmi_fan_control::NormalizeServiceName("rack_fans@bmc") == "rack_fans@bmc", "合法 service-name 应保留");
+
+    bool threw = false;
+    try {
+        static_cast<void>(ipmi_fan_control::NormalizeServiceName("../escape"));
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    Expect(threw, "包含路径穿越内容的 service-name 应被拒绝");
+}
+
+void TestParseCommandLineRejectsInvalidServiceName() {
+    const char* argv[] = {
+        "ipmi-fan-control",
+        "install-service",
+        "--config",
+        "config.yaml",
+        "--service-name",
+        "../escape",
+    };
+
+    bool threw_usage_error = false;
+    try {
+        static_cast<void>(ipmi_fan_control::ParseCommandLine(6, const_cast<char**>(argv)));
+    } catch (const ipmi_fan_control::UsageError&) {
+        threw_usage_error = true;
+    }
+    Expect(threw_usage_error, "CLI 应拒绝非法 service-name");
 }
 
 }  // namespace
@@ -86,7 +202,12 @@ int main() {
         {"FilterInfoReport", TestFilterInfoReport},
         {"ControlRule", TestControlRule},
         {"LoadYamlConfig", TestLoadYamlConfig},
+        {"LoadYamlConfigRejectsMissingField", TestLoadYamlConfigRejectsMissingField},
+        {"LoadYamlConfigRejectsUnknownField", TestLoadYamlConfigRejectsUnknownField},
+        {"LoadYamlConfigRejectsUnknownStepField", TestLoadYamlConfigRejectsUnknownStepField},
         {"SystemdUnitBuilder", TestSystemdUnitBuilder},
+        {"NormalizeServiceName", TestNormalizeServiceName},
+        {"ParseCommandLineRejectsInvalidServiceName", TestParseCommandLineRejectsInvalidServiceName},
     };
 
     for (const auto& test : tests) {

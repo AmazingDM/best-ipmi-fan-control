@@ -1,21 +1,21 @@
-# C++ 迁移计划
+# C++ Migration Summary
 
-## 目标
+Simplified Chinese: [docs/zh-CN/plans/cpp-migration-plan.md](../zh-CN/plans/cpp-migration-plan.md)
 
-将原先基于 Rust 的 IPMI 风扇控制工具迁移为 C++ 版本，并引入 YAML 阶梯控速配置、`systemd` 服务安装能力以及 GitHub Actions 自动化流水线。
+## Scope
 
-## 实施内容
+Migrate the original Rust-based IPMI fan control tool to C++, introduce YAML step-based fan control, add `systemd` service installation support, and replace the old Rust automation with C++-focused GitHub Actions.
 
-1. 使用 `CMake + yaml-cpp` 重建工程结构
-2. 将原先硬编码的温度映射迁移为 YAML 配置
-3. 保留 `info / fixed / auto` 命令，并新增 `validate-config / install-service`
-4. 采用中英双语注释重写核心逻辑
-5. 新增单元测试、示例配置、服务模板和 GitHub Actions
+## What Changed
 
-## 验收标准
+1. Rebuilt the project with `CMake + yaml-cpp`
+2. Replaced hard-coded temperature mapping with YAML configuration
+3. Kept `info / fixed / auto` and added `validate-config / install-service`
+4. Added tests, example assets, service templates, CI, and release automation
 
-- 代码结构清晰，核心职责分层明确
-- 示例 YAML 能被校验并驱动自动控速
-- `install-service` 能生成或安装可用的 `systemd` 服务
-- CI 可完成构建与测试
-- Release 工作流可生成 Linux 二进制发布包
+## Current Status
+
+- The codebase is split into CLI, configuration, control, IPMI, process, logging, and service modules.
+- The example YAML can be validated and used for automatic control.
+- `install-service` can generate or install a `systemd` unit for Linux deployments.
+- CI builds and tests the project, and the release workflow packages Linux binaries.

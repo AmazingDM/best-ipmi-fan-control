@@ -53,7 +53,14 @@ int RunAuto(const ParsedCommand& command, const IpmiClient& client) {
                 Logger::Trace("温度未跨越新阶梯，跳过重复设置");
             }
         } catch (const std::exception& ex) {
-            Logger::Error(ex.what());
+            Logger::Error("自动控速失败: " + std::string(ex.what()));
+            try {
+                client.SetFanSpeed(100);
+                Logger::Error("已切换到 100% 风扇转速并退出，让 systemd 执行重启策略");
+            } catch (const std::exception& fail_safe_ex) {
+                Logger::Error("切换到 100% 风扇转速失败: " + std::string(fail_safe_ex.what()));
+            }
+            return 1;
         }
 
         std::this_thread::sleep_for(std::chrono::seconds(config.interval_seconds));
@@ -122,9 +129,12 @@ int main(int argc, char** argv) {
 
         std::cerr << "未处理的命令类型" << std::endl;
         return 1;
-    } catch (const std::exception& ex) {
+    } catch (const UsageError& ex) {
         Logger::Error(ex.what());
         std::cerr << "\n" << BuildUsage();
+        return 1;
+    } catch (const std::exception& ex) {
+        Logger::Error(ex.what());
         return 1;
     }
 }

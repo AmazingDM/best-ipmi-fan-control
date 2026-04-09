@@ -1,24 +1,22 @@
-# 安全策略
+# Security Policy
 
-## 漏洞报告
+## Reporting a Vulnerability
 
-如果你发现了与本项目相关的安全问题，请不要直接提交公开 Issue，而是通过维护者公开联系方式私下报告。
+Please do not open a public issue for security-sensitive reports. Use the maintainer contact information associated with the repository and include as much detail as possible:
 
-建议在报告中尽量包含以下信息：
+- affected version
+- reproduction steps
+- expected behavior versus actual behavior
+- impact and severity
+- a minimal reproducible example when available
 
-- 受影响的版本号
-- 复现步骤
-- 预期行为与实际行为
-- 风险影响范围
-- 如有可能，附上最小可复现示例
+## What Counts as a Security or Safety Issue
 
-## 特别说明
+This project directly changes server fan speed through `ipmitool`, so the following classes of issues should be treated as security or operational safety problems:
 
-本项目会直接调用 `ipmitool` 并修改服务器风扇转速，因此以下问题也应被视为安全或稳定性风险：
+- incorrect fan speed enforcement
+- temperature parsing errors that can lead to unsafe control decisions
+- YAML validation gaps that allow dangerous configurations
+- service installation behavior that introduces privilege or path risks
 
-- 风扇转速限制失效
-- 温度解析错误导致的错误控速
-- 配置文件校验缺陷
-- 服务安装逻辑导致的权限或路径问题
-
-涉及上述问题的报告，请明确说明运行环境、BMC 类型、`ipmitool` 版本以及相关日志片段。
+When reporting one of these issues, include the hardware platform, BMC or iDRAC type, `ipmitool` version, and relevant logs if available.

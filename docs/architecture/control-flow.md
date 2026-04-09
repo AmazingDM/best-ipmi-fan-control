@@ -1,30 +1,28 @@
-# 控制流程说明
+# Control Flow
 
-## 总体流程
+Simplified Chinese: [docs/zh-CN/architecture/control-flow.md](../zh-CN/architecture/control-flow.md)
 
-1. CLI 解析命令与选项
-2. 如果是 `auto` 模式，则加载 YAML 配置并校验
-3. 周期性调用 `ipmitool sdr type Temperature`
-4. 从输出中提取最大温度
-5. 按阶梯规则计算目标风扇转速
-6. 仅当目标转速变化时才调用 `ipmitool raw` 写入新转速
+## Runtime Flow
 
-## 模块职责
+1. Parse CLI arguments and resolve the selected command.
+2. For `auto`, load the YAML configuration and validate it.
+3. Poll `ipmitool sdr type Temperature`.
+4. Extract the highest reported temperature.
+5. Match the temperature against the step-based fan rules.
+6. Call `ipmitool raw` only when the target fan speed changes.
+7. If sensor reads or IPMI writes fail, switch to `100%` fan speed when possible and exit so `systemd` can restart the service.
 
-- `cli.cpp`
-  负责命令行解析和帮助信息
-- `config.cpp`
-  负责 YAML 加载、默认值补全和字段校验
-- `control.cpp`
-  负责温度到转速的阶梯匹配
-- `ipmi.cpp`
-  负责 `ipmitool` 输出解析和风扇写入
-- `service.cpp`
-  负责生成与安装 `systemd` 服务
+## Module Responsibilities
 
-## 设计重点
+- `cli.cpp`: command-line parsing and usage output
+- `config.cpp`: strict YAML loading and validation, plus built-in defaults for `auto` without `--config`
+- `control.cpp`: temperature-to-speed step matching
+- `ipmi.cpp`: `ipmitool` invocation and output parsing
+- `service.cpp`: `systemd` unit generation and installation
 
-- 控制逻辑与命令执行分离，便于测试
-- 配置规则保持简单，只支持阶梯式控速
-- 默认值尽量贴近原仓库的历史行为
-- 写入风扇前先切换到手动模式，保持和旧版本一致
+## Design Notes
+
+- Control decisions are separated from process execution so the logic is testable.
+- The configuration model is intentionally simple and only supports step-based control.
+- Built-in defaults are only used when `auto` runs without a YAML file.
+- Fan writes always switch to manual mode first to preserve the existing hardware flow.

@@ -1,31 +1,36 @@
-# YAML 配置说明
+# YAML Configuration
 
-## 字段定义
+Simplified Chinese: [docs/zh-CN/configuration/yaml-schema.md](../zh-CN/configuration/yaml-schema.md)
+
+## Fields
 
 ### `interval_seconds`
 
-- 类型：整数
-- 含义：温度轮询间隔，单位秒
-- 默认值：`5`
+- Type: integer
+- Meaning: polling interval in seconds
+- Required in YAML files: yes
 
 ### `full_speed_threshold`
 
-- 类型：整数
-- 含义：达到该温度后强制风扇转速为 `100`
-- 默认值：`70`
+- Type: integer
+- Meaning: force fan speed to `100` once this temperature is reached
+- Required in YAML files: yes
 
 ### `steps`
 
-- 类型：数组
-- 含义：温度阶梯规则
-- 要求：必须按 `max_temp` 严格升序排列
+- Type: array
+- Meaning: ordered fan control steps
+- Rule: entries must be sorted by `max_temp` in strictly ascending order
+- Required in YAML files: yes
 
-每一项包含：
+Each step contains:
 
-- `max_temp`：该阶梯允许的最大温度
-- `fan_speed`：命中该阶梯时设置的风扇转速百分比
+- `max_temp`: highest temperature allowed for the step
+- `fan_speed`: fan speed percentage applied for the step
 
-## 示例
+When `auto` runs without `--config`, the built-in defaults are used instead of loading a YAML file.
+
+## Example
 
 ```yaml
 interval_seconds: 5
@@ -44,14 +49,17 @@ steps:
     fan_speed: 80
 ```
 
-## 匹配规则
+## Matching Rules
 
-程序会读取当前温度传感器中的最大值，然后按顺序查找首个满足 `temperature <= max_temp` 的阶梯。如果未命中任何阶梯，或者温度达到 `full_speed_threshold`，则直接设为 `100%`。
+The tool reads the highest available temperature sensor value and returns the first step where `temperature <= max_temp`. If no step matches, or the temperature reaches `full_speed_threshold`, the fan speed is forced to `100`.
 
-## 校验规则
+## Validation Rules
 
-- `interval_seconds` 范围为 `1-3600`
-- `full_speed_threshold` 范围为 `1-150`
-- `steps` 不能为空
-- `fan_speed` 范围为 `0-100`
-- `max_temp` 必须严格升序
+- Unknown top-level fields are rejected.
+- Unknown fields inside `steps` entries are rejected.
+- Missing required fields are rejected.
+- `interval_seconds` must be in `1-3600`
+- `full_speed_threshold` must be in `1-150`
+- `steps` cannot be empty
+- `fan_speed` must be in `0-100`
+- `max_temp` must be strictly ascending

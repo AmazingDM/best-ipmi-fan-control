@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 Restart=always
 RestartSec=5
-ExecStart=/usr/bin/ipmi-fan-control auto --config /etc/ipmi-fan-control/config.yaml
+ExecStart="/usr/bin/ipmi-fan-control" auto --config "/etc/ipmi-fan-control/config.yaml"
 KillMode=mixed
 
 [Install]

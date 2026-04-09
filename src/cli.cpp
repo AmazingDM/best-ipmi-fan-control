@@ -1,7 +1,7 @@
 #include "ipmi_fan_control/cli.hpp"
+#include "ipmi_fan_control/service.hpp"
 
 #include <sstream>
-#include <stdexcept>
 #include <vector>
 
 namespace ipmi_fan_control {
@@ -13,17 +13,17 @@ int ParseIntValue(const std::string& raw_value, const std::string& option_name) 
         size_t consumed = 0;
         const int value = std::stoi(raw_value, &consumed, 10);
         if (consumed != raw_value.size()) {
-            throw std::runtime_error("");
+            throw UsageError("");
         }
         return value;
     } catch (const std::exception&) {
-        throw std::runtime_error("参数无效: " + option_name + "=" + raw_value);
+        throw UsageError("参数无效: " + option_name + "=" + raw_value);
     }
 }
 
 std::string RequireValue(const std::vector<std::string>& args, size_t& index, const std::string& option_name) {
     if (index + 1 >= args.size()) {
-        throw std::runtime_error("缺少参数值: " + option_name);
+        throw UsageError("缺少参数值: " + option_name);
     }
     ++index;
     return args[index];
@@ -63,7 +63,7 @@ ParsedCommand ParseCommandLine(int argc, char** argv) {
     if (command == "info") {
         parsed.type = CommandType::kInfo;
         if (args.size() != 1) {
-            throw std::runtime_error("info 命令不接受额外参数");
+            throw UsageError("info 命令不接受额外参数");
         }
         return parsed;
     }
@@ -71,7 +71,7 @@ ParsedCommand ParseCommandLine(int argc, char** argv) {
     if (command == "fixed") {
         parsed.type = CommandType::kFixed;
         if (args.size() != 2) {
-            throw std::runtime_error("fixed 命令缺少风扇转速值");
+            throw UsageError("fixed 命令缺少风扇转速值");
         }
         parsed.fixed_value = ParseIntValue(args[1], "value");
         return parsed;
@@ -88,7 +88,7 @@ ParsedCommand ParseCommandLine(int argc, char** argv) {
             } else if (token == "--threshold") {
                 parsed.threshold_override = ParseIntValue(RequireValue(args, i, token), token);
             } else {
-                throw std::runtime_error("未知参数: " + token);
+                throw UsageError("未知参数: " + token);
             }
         }
         return parsed;
@@ -101,11 +101,11 @@ ParsedCommand ParseCommandLine(int argc, char** argv) {
             if (token == "--config") {
                 parsed.config_path = RequireValue(args, i, token);
             } else {
-                throw std::runtime_error("未知参数: " + token);
+                throw UsageError("未知参数: " + token);
             }
         }
         if (!parsed.config_path.has_value()) {
-            throw std::runtime_error("validate-config 需要提供 --config");
+            throw UsageError("validate-config 需要提供 --config");
         }
         return parsed;
     }
@@ -117,22 +117,31 @@ ParsedCommand ParseCommandLine(int argc, char** argv) {
             if (token == "--config") {
                 parsed.config_path = RequireValue(args, i, token);
             } else if (token == "--service-name") {
-                parsed.service_name = RequireValue(args, i, token);
+                try {
+                    parsed.service_name = NormalizeServiceName(RequireValue(args, i, token));
+                } catch (const std::exception& ex) {
+                    throw UsageError(ex.what());
+                }
             } else if (token == "--output") {
                 parsed.output_path = RequireValue(args, i, token);
             } else if (token == "--dry-run") {
                 parsed.dry_run = true;
             } else {
-                throw std::runtime_error("未知参数: " + token);
+                throw UsageError("未知参数: " + token);
             }
         }
         if (!parsed.config_path.has_value()) {
-            throw std::runtime_error("install-service 需要提供 --config");
+            throw UsageError("install-service 需要提供 --config");
+        }
+        try {
+            parsed.service_name = NormalizeServiceName(parsed.service_name);
+        } catch (const std::exception& ex) {
+            throw UsageError(ex.what());
         }
         return parsed;
     }
 
-    throw std::runtime_error("未知命令: " + command);
+    throw UsageError("未知命令: " + command);
 }
 
 std::string BuildUsage() {

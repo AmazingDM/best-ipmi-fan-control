@@ -2,6 +2,8 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include <array>
+#include <algorithm>
 #include <sstream>
 #include <stdexcept>
 
@@ -33,6 +35,27 @@ T ReadScalar(const YAML::Node& node, const char* key) {
         throw std::runtime_error(std::string("缺少配置字段: ") + key);
     }
     return node[key].as<T>();
+}
+
+template <size_t N>
+void RejectUnknownKeys(const YAML::Node& node, const std::array<const char*, N>& allowed_keys, const std::string& scope) {
+    if (!node.IsMap()) {
+        throw std::runtime_error(scope + " 必须是对象");
+    }
+
+    for (const auto& entry : node) {
+        if (!entry.first.IsScalar()) {
+            throw std::runtime_error(scope + " 包含无法识别的键");
+        }
+
+        const std::string key = entry.first.as<std::string>();
+        const auto match = std::find_if(allowed_keys.begin(), allowed_keys.end(), [&](const char* allowed_key) {
+            return key == allowed_key;
+        });
+        if (match == allowed_keys.end()) {
+            throw std::runtime_error(scope + " 包含未知字段: " + key);
+        }
+    }
 }
 
 }  // namespace
@@ -71,25 +94,30 @@ ControlConfig LoadConfigFromFile(const std::filesystem::path& file_path) {
         throw std::runtime_error("配置文件不存在: " + file_path.string());
     }
 
-    // 先加载默认配置，再让 YAML 覆盖具体字段，保持未填写项也有安全默认值。
-    // Start from defaults, then let YAML override explicit fields for safer behavior.
     const YAML::Node root = YAML::LoadFile(file_path.string());
-    ControlConfig config = DefaultControlConfig();
+    RejectUnknownKeys(root, std::array<const char*, 3>{"interval_seconds", "full_speed_threshold", "steps"}, "根配置");
 
-    if (root["interval_seconds"]) {
-        config.interval_seconds = root["interval_seconds"].as<int>();
+    ControlConfig config;
+    config.interval_seconds = ReadScalar<int>(root, "interval_seconds");
+    config.full_speed_threshold = ReadScalar<int>(root, "full_speed_threshold");
+
+    const YAML::Node steps_node = root["steps"];
+    if (!steps_node) {
+        throw std::runtime_error("缺少配置字段: steps");
     }
-    if (root["full_speed_threshold"]) {
-        config.full_speed_threshold = root["full_speed_threshold"].as<int>();
+    if (!steps_node.IsSequence()) {
+        throw std::runtime_error("steps 必须是数组");
     }
-    if (root["steps"]) {
-        config.steps.clear();
-        for (const YAML::Node& step_node : root["steps"]) {
-            FanStep step;
-            step.max_temp = ReadScalar<int>(step_node, "max_temp");
-            step.fan_speed = ReadScalar<int>(step_node, "fan_speed");
-            config.steps.push_back(step);
-        }
+
+    config.steps.clear();
+    for (size_t i = 0; i < steps_node.size(); ++i) {
+        const YAML::Node step_node = steps_node[i];
+        RejectUnknownKeys(step_node, std::array<const char*, 2>{"max_temp", "fan_speed"}, "steps[" + std::to_string(i) + "]");
+
+        FanStep step;
+        step.max_temp = ReadScalar<int>(step_node, "max_temp");
+        step.fan_speed = ReadScalar<int>(step_node, "fan_speed");
+        config.steps.push_back(step);
     }
 
     ValidateConfig(config);

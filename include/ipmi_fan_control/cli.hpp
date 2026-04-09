@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <optional>
+#include <stdexcept>
 #include <string>
 
 namespace ipmi_fan_control {
@@ -26,6 +27,11 @@ struct ParsedCommand {
     std::optional<std::filesystem::path> output_path;
     bool dry_run = false;
     std::filesystem::path executable_path;
+};
+
+class UsageError : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
 };
 
 ParsedCommand ParseCommandLine(int argc, char** argv);

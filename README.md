@@ -1,48 +1,49 @@
 # ipmi-fan-control
 
-[![C++ CI](https://github.com/AmazingDM/best-ipmi-fan-control/actions/workflows/ci.yml/badge.svg)](https://github.com/AmazingDM/best-ipmi-fan-control/actions/workflows/ci.yml)
+[![C++ CI](https://github.com/AmazingDM/better-ipmi-fan-control/actions/workflows/ci.yml/badge.svg)](https://github.com/AmazingDM/better-ipmi-fan-control/actions/workflows/ci.yml)
 
-一个基于 C++ 的 IPMI 风扇控制工具。它通过调用 `ipmitool` 读取温度传感器数据，并根据 YAML 配置中的阶梯规则设置风扇转速，适用于 Linux + `systemd` 的服务器环境。
+Step-based IPMI fan control for Linux servers, implemented in C++. The tool reads temperature sensors through `ipmitool`, maps the highest temperature to a YAML-defined fan speed step, and can install itself as a `systemd` service.
 
-## 功能特性
+Simplified Chinese documentation: [docs/zh-CN/README.md](docs/zh-CN/README.md)
 
-- 使用直观的 YAML 文件定义温度与风扇转速的阶梯关系
-- 保留 `info`、`fixed`、`auto` 命令行模式
-- 支持 `validate-config` 校验配置文件
-- 支持 `install-service` 一键注册 `systemd` 服务并开机自启
-- 提供 GitHub Actions 自动构建、测试与 Release 发布流程
+## Features
 
-## 目录说明
+- Step-based fan control driven by a single YAML file
+- CLI commands for `info`, `fixed`, `auto`, `validate-config`, and `install-service`
+- `systemd` service installation with a specified config path
+- GitHub Actions CI for build and test validation
+- Manual GitHub Release workflow for Linux `x86_64` and `arm64`
 
-- `include/`：公开头文件
-- `src/`：核心实现
-- `tests/`：单元测试
-- `examples/`：示例 YAML 配置
-- `etc/systemd/system/`：示例服务文件
-- `docs/`：迁移计划、架构说明、配置说明与 CI 文档
+## Documentation
 
-## 依赖要求
+- [Documentation index](docs/README.md)
+- [Architecture overview](docs/architecture/control-flow.md)
+- [YAML configuration reference](docs/configuration/yaml-schema.md)
+- [GitHub Actions workflows](docs/ci/github-actions.md)
+- [C++ migration summary](docs/plans/cpp-migration-plan.md)
 
-运行环境：
+## Requirements
+
+Runtime:
 
 - Linux
 - `ipmitool`
 - `systemd`
 
-构建依赖：
+Build:
 
 - CMake 3.20+
-- 支持 C++17 的编译器
+- A C++17 compiler
 - `yaml-cpp`
 
-Ubuntu / Debian 示例：
+Ubuntu / Debian example:
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y build-essential cmake ninja-build libyaml-cpp-dev ipmitool
 ```
 
-## 构建方法
+## Build
 
 ```bash
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
@@ -50,45 +51,45 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-## 快速开始
+## Quick Start
 
-查看风扇与温度信息：
+Print fan and temperature information:
 
 ```bash
 ./build/ipmi-fan-control info
 ```
 
-设置固定风扇转速：
+Set a fixed fan speed:
 
 ```bash
 ./build/ipmi-fan-control fixed 35
 ```
 
-使用示例配置启动自动控速：
+Run automatic control with a YAML file:
 
 ```bash
 ./build/ipmi-fan-control auto --config examples/config.example.yaml
 ```
 
-校验配置文件：
+Validate a YAML file:
 
 ```bash
 ./build/ipmi-fan-control validate-config --config examples/config.example.yaml
 ```
 
-预览将要生成的 `systemd` 服务文件：
+Preview the generated `systemd` unit:
 
 ```bash
 ./build/ipmi-fan-control install-service --config /etc/ipmi-fan-control/config.yaml --dry-run
 ```
 
-安装并启用 `systemd` 服务：
+Install and enable the `systemd` service:
 
 ```bash
 sudo ./build/ipmi-fan-control install-service --config /etc/ipmi-fan-control/config.yaml
 ```
 
-## YAML 配置示例
+## Example YAML
 
 ```yaml
 interval_seconds: 5
@@ -107,24 +108,22 @@ steps:
     fan_speed: 80
 ```
 
-规则说明：
+Matching rules:
 
-- 程序每次轮询后会选取当前温度传感器中的最大值作为控制依据
-- 依次匹配首个 `temperature <= max_temp` 的阶梯
-- 如果温度高于所有阶梯，或达到 `full_speed_threshold`，则强制风扇为 `100%`
+- The tool uses the highest temperature from the available temperature sensors.
+- It returns the first step where `temperature <= max_temp`.
+- If the temperature exceeds all steps, or reaches `full_speed_threshold`, fan speed is forced to `100`.
 
-## GitHub Actions
+## Repository Layout
 
-- `ci.yml`：在 `push` 和 `pull_request` 时自动构建并运行测试
-- `release.yml`：手动输入版本号后构建 `Linux x86_64` 与 `Linux arm64` 包，并上传到 GitHub Release
+- `include/`: public headers
+- `src/`: core implementation
+- `tests/`: unit tests
+- `examples/`: example YAML files
+- `etc/systemd/system/`: service templates
+- `docs/`: project documentation
+- `docs/zh-CN/`: Simplified Chinese translations of the main docs
 
-更多说明见：
+## Safety Notice
 
-- [docs/plans/cpp-migration-plan.md](docs/plans/cpp-migration-plan.md)
-- [docs/architecture/control-flow.md](docs/architecture/control-flow.md)
-- [docs/configuration/yaml-schema.md](docs/configuration/yaml-schema.md)
-- [docs/ci/github-actions.md](docs/ci/github-actions.md)
-
-## 免责声明
-
-此工具会直接控制服务器风扇，配置错误可能导致温度过高、噪声异常或硬件保护触发。请先在受控环境中验证 YAML 配置，再部署到生产环境。
+This tool directly controls server fan speed. A bad configuration may cause overheating, excessive noise, or hardware protection events. Validate the YAML file in a controlled environment before deploying it on production hardware.
